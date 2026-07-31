@@ -51,15 +51,15 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.1.5
-          name: VaultGram Release v2.1.5
+          tag_name: v2.1.6
+          name: VaultGram Release v2.1.6
           body: |
-            ## 🚀 VaultGram Release v2.1.5
+            ## 🚀 VaultGram Release v2.1.6
             
             ### 📱 Download Installable APK:
             - **VaultGram.apk**: Standalone Android App signed with official persistent release key.
-            - Decodes TeleDrive/CloudGallery JSON captions (`{"v":1,"iv":...}`) & `.bin`/`.enc` attachments.
-            - Auto-imports existing channel videos & media into VaultGram gallery.
+            - Fixed 0-byte NanoHTTPD temp filename bug (`NanoHTTPD-3117551068319619522`).
+            - Added dynamic DB `mime_type` lookup for streaming decrypted video & photo payloads.
             - One-Time Passphrase Setup.
             - Embedded Zero-Knowledge AES-256 Cloud Engine.
           files: artifacts/VaultGram.apk

@@ -313,6 +313,7 @@ async function handleFileUpload(event) {
 
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('filename', file.name);
         if (currentParentId) {
             formData.append('parent_id', currentParentId);
         }

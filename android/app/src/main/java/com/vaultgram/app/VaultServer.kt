@@ -176,15 +176,22 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
 
                         if (masterKey == null) return new401Response()
 
-                        if (!encFile.exists()) {
-                            val db = dbHelper.readableDatabase
-                            val cursor = db.rawQuery("SELECT telegram_file_id FROM nodes WHERE id=?", arrayOf(nodeId))
-                            var telegramFileId: String? = null
-                            if (cursor.moveToFirst()) telegramFileId = cursor.getString(0)
-                            cursor.close()
+                        val db = dbHelper.readableDatabase
+                        val cursor = db.rawQuery("SELECT mime_type, name, telegram_file_id FROM nodes WHERE id=?", arrayOf(nodeId))
+                        var dbMimeType = "application/octet-stream"
+                        var dbName = ""
+                        var telegramFileId: String? = null
 
+                        if (cursor.moveToFirst()) {
+                            dbMimeType = cursor.getString(0) ?: "application/octet-stream"
+                            dbName = cursor.getString(1) ?: ""
+                            telegramFileId = cursor.getString(2)
+                        }
+                        cursor.close()
+
+                        if (!encFile.exists() && !telegramFileId.isNullOrEmpty()) {
                             val botToken = getSetting("bot_token")
-                            if (!telegramFileId.isNullOrEmpty() && !botToken.isNullOrEmpty()) {
+                            if (!botToken.isNullOrEmpty()) {
                                 try {
                                     val getFileUrl = "https://api.telegram.org/bot$botToken/getFile?file_id=$telegramFileId"
                                     val req = Request.Builder().url(getFileUrl).build()
@@ -213,9 +220,9 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
 
                         return try {
                             val decrypted = CryptoEngine.decryptBytes(encFile.readBytes(), masterKey!!)
-                            newFixedLengthResponse(Response.Status.OK, "video/mp4", ByteArrayInputStream(decrypted), decrypted.size.toLong())
+                            newFixedLengthResponse(Response.Status.OK, dbMimeType, ByteArrayInputStream(decrypted), decrypted.size.toLong())
                         } catch (e: Exception) {
-                            newFixedLengthResponse(Response.Status.OK, "video/mp4", ByteArrayInputStream(encFile.readBytes()), encFile.length())
+                            newFixedLengthResponse(Response.Status.OK, dbMimeType, ByteArrayInputStream(encFile.readBytes()), encFile.length())
                         }
                     }
                     else -> {
@@ -341,7 +348,14 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
                         if (masterKey == null) return new401Response()
                         val tmpFilePath = files["file"] ?: files.values.firstOrNull() ?: return new400Response()
                         val rawFile = File(tmpFilePath)
-                        val filename = session.parameters["filename"]?.firstOrNull() ?: rawFile.name ?: "upload.bin"
+
+                        var filename = session.parameters["filename"]?.firstOrNull() ?: files["filename"]
+                        if (filename.isNullOrEmpty() || filename.startsWith("NanoHTTPD")) {
+                            filename = session.parameters["file"]?.firstOrNull() ?: rawFile.name
+                        }
+                        if (filename.startsWith("NanoHTTPD") || filename.isEmpty()) {
+                            filename = "uploaded_media_${UUID.randomUUID().toString().take(6)}.bin"
+                        }
 
                         val nodeId = "file_${UUID.randomUUID().toString().replace("-", "").take(12)}"
                         val storageDir = File(context.filesDir, "storage")
@@ -349,7 +363,16 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
                         val encFile = File(storageDir, "$nodeId.enc")
 
                         val sha256 = CryptoEngine.encryptFile(rawFile, encFile, masterKey!!)
-                        val mimeType = context.contentResolver.getType(android.net.Uri.fromFile(rawFile)) ?: "application/octet-stream"
+                        var mimeType = "application/octet-stream"
+
+                        val lowerName = filename.lowercase()
+                        if (lowerName.endsWith(".mp4") || lowerName.endsWith(".mkv") || lowerName.endsWith(".avi") || lowerName.endsWith(".webm") || lowerName.endsWith(".bin") || lowerName.endsWith(".enc")) {
+                            mimeType = "video/mp4"
+                        } else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png") || lowerName.endsWith(".webp") || lowerName.endsWith(".gif")) {
+                            mimeType = "image/jpeg"
+                        } else if (lowerName.endsWith(".mp3") || lowerName.endsWith(".m4a") || lowerName.endsWith(".wav") || lowerName.endsWith(".ogg")) {
+                            mimeType = "audio/mpeg"
+                        }
 
                         val db = dbHelper.writableDatabase
                         val cv = ContentValues().apply {
