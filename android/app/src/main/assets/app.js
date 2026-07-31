@@ -233,7 +233,7 @@ function renderMediaGrid() {
 
 async function loadDriveNodes(parentId = null) {
     try {
-        let url = '/api/nodes';
+        let url = `${SERVER_URL}/api/nodes`;
         if (parentId) url += `?parent_id=${parentId}`;
 
         const res = await fetch(url);
@@ -241,11 +241,11 @@ async function loadDriveNodes(parentId = null) {
         const grid = document.getElementById('driveGrid');
         grid.innerHTML = '';
 
-        data.nodes.forEach(item => {
+        (data.nodes || []).forEach(item => {
             const el = document.createElement('div');
             el.className = 'drive-item';
 
-            if (item.type === 'folder') {
+            if (item.type === 'directory' || item.type === 'folder') {
                 el.onclick = () => navigateToFolder(item.id, item.name);
                 el.innerHTML = `
                     <i class="fa-solid fa-folder drive-icon folder"></i>

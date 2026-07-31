@@ -60,6 +60,30 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
                         val channelId = getSetting("channel_id") ?: ""
                         return newJsonResponse(mapOf("bot_token" to botToken, "channel_id" to channelId))
                     }
+                    uri.startsWith("/api/nodes") -> {
+                        if (masterKey == null) return new401Response()
+                        val parentId = session.parameters["parent_id"]?.firstOrNull()
+                        val db = dbHelper.readableDatabase
+                        val cursor = if (parentId.isNullOrEmpty()) {
+                            db.rawQuery("SELECT id, name, type, parent_id, size_bytes, mime_type, created_at FROM nodes WHERE parent_id IS NULL ORDER BY type DESC, name ASC", null)
+                        } else {
+                            db.rawQuery("SELECT id, name, type, parent_id, size_bytes, mime_type, created_at FROM nodes WHERE parent_id=? ORDER BY type DESC, name ASC", arrayOf(parentId))
+                        }
+                        val list = mutableListOf<Map<String, Any?>>()
+                        while (cursor.moveToNext()) {
+                            list.add(mapOf(
+                                "id" to cursor.getString(0),
+                                "name" to cursor.getString(1),
+                                "type" to cursor.getString(2),
+                                "parent_id" to cursor.getString(3),
+                                "size_bytes" to cursor.getLong(4),
+                                "mime_type" to cursor.getString(5),
+                                "created_at" to cursor.getString(6)
+                            ))
+                        }
+                        cursor.close()
+                        return newJsonResponse(mapOf("nodes" to list))
+                    }
                     uri.startsWith("/api/download/") -> {
                         val nodeId = uri.removePrefix("/api/download/")
                         val storageDir = File(context.filesDir, "storage")
