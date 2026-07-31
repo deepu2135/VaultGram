@@ -140,7 +140,10 @@
                     <input type="text" placeholder="Search photos and memories..." id="searchInput" oninput="handleSearch(this.value)">
                 </div>
 
-                <div class="topbar-actions">
+                <div class="topbar-actions" style="display: flex; gap: 8px;">
+                    <button class="btn btn-outline" onclick="syncTelegramChannel()">
+                        <i class="fa-solid fa-rotate"></i> Sync Channel
+                    </button>
                     <button class="btn btn-secondary" onclick="openCreateFolderModal()">
                         <i class="fa-solid fa-folder-plus"></i> New Folder
                     </button>

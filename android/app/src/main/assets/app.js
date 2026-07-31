@@ -149,6 +149,30 @@ function filterMedia(type) {
     renderMediaGrid();
 }
 
+async function syncTelegramChannel() {
+    const toast = document.getElementById('uploadToast');
+    const nameEl = document.getElementById('toastFileName');
+    const subEl = document.getElementById('toastSubtext');
+    if (nameEl) nameEl.textContent = 'Syncing Telegram Channel...';
+    if (subEl) subEl.textContent = 'Scanning channel for videos & encrypted files...';
+    if (toast) toast.style.display = 'flex';
+
+    try {
+        const res = await fetch(`${SERVER_URL}/api/sync`);
+        const data = await res.json();
+        if (res.ok) {
+            alert(`Sync Complete! Imported ${data.synced || 0} new media files from your Telegram Channel.`);
+            loadCurrentTabData();
+        } else {
+            alert('Failed to sync channel. Make sure Bot Token & Channel ID are configured.');
+        }
+    } catch (err) {
+        console.error('Error syncing channel:', err);
+        alert('Error connecting to Telegram server.');
+    }
+    if (toast) toast.style.display = 'none';
+}
+
 async function loadMediaVault() {
     try {
         const res = await fetch(`${SERVER_URL}/api/media`);

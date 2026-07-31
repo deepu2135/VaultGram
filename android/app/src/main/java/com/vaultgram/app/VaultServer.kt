@@ -84,14 +84,113 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
                         cursor.close()
                         return newJsonResponse(mapOf("nodes" to list))
                     }
+                    uri == "/api/sync" -> {
+                        val botToken = getSetting("bot_token")
+                        if (botToken.isNullOrEmpty() || masterKey == null) return new401Response()
+
+                        var syncedCount = 0
+                        try {
+                            val url = "https://api.telegram.org/bot$botToken/getUpdates?limit=100"
+                            val req = Request.Builder().url(url).build()
+                            val response = httpClient.newCall(req).execute()
+                            val jsonStr = response.body?.string() ?: ""
+                            val jsonMap = gson.fromJson(jsonStr, Map::class.java)
+
+                            val results = jsonMap["result"] as? List<Map<String, Any>> ?: emptyList()
+                            val db = dbHelper.writableDatabase
+
+                            for (item in results) {
+                                val post = (item["channel_post"] as? Map<String, Any>) ?: (item["message"] as? Map<String, Any>) ?: continue
+                                val doc = (post["document"] as? Map<String, Any>) ?: (post["video"] as? Map<String, Any>)
+                                if (doc != null) {
+                                    val fileId = doc["file_id"] as? String ?: continue
+                                    var fileName = doc["file_name"] as? String ?: "telegram_video_${UUID.randomUUID().toString().take(6)}.mp4"
+                                    val fileSize = (doc["file_size"] as? Number)?.toLong() ?: 0L
+                                    var mimeType = doc["mime_type"] as? String ?: "video/mp4"
+
+                                    val caption = post["caption"] as? String ?: ""
+                                    if (caption.contains("Name: ")) {
+                                        val match = Regex("Name:\\s*(.+)").find(caption)
+                                        if (match != null) fileName = match.groupValues[1].trim()
+                                    }
+
+                                    if (fileName.endsWith(".mp4") || fileName.endsWith(".mkv") || fileName.endsWith(".avi") || fileName.endsWith(".bin") || mimeType.contains("video")) {
+                                        mimeType = "video/mp4"
+                                    }
+
+                                    val cursor = db.rawQuery("SELECT id FROM nodes WHERE telegram_file_id=?", arrayOf(fileId))
+                                    val exists = cursor.moveToFirst()
+                                    cursor.close()
+
+                                    if (!exists) {
+                                        val nodeId = "file_${UUID.randomUUID().toString().replace("-", "").take(12)}"
+                                        val cv = ContentValues().apply {
+                                            put("id", nodeId)
+                                            put("name", fileName)
+                                            put("type", "file")
+                                            put("telegram_file_id", fileId)
+                                            put("size_bytes", fileSize)
+                                            put("mime_type", mimeType)
+                                            put("created_at", System.currentTimeMillis().toString())
+                                        }
+                                        db.insert("nodes", null, cv)
+                                        syncedCount++
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                        return newJsonResponse(mapOf("status" to "success", "synced" to syncedCount))
+                    }
                     uri.startsWith("/api/download/") -> {
                         val nodeId = uri.removePrefix("/api/download/")
                         val storageDir = File(context.filesDir, "storage")
                         val encFile = File(storageDir, "$nodeId.enc")
-                        if (!encFile.exists() || masterKey == null) return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "File not found")
 
-                        val decrypted = CryptoEngine.decryptBytes(encFile.readBytes(), masterKey!!)
-                        return newFixedLengthResponse(Response.Status.OK, "application/octet-stream", ByteArrayInputStream(decrypted), decrypted.size.toLong())
+                        if (masterKey == null) return new401Response()
+
+                        if (!encFile.exists()) {
+                            val db = dbHelper.readableDatabase
+                            val cursor = db.rawQuery("SELECT telegram_file_id FROM nodes WHERE id=?", arrayOf(nodeId))
+                            var telegramFileId: String? = null
+                            if (cursor.moveToFirst()) telegramFileId = cursor.getString(0)
+                            cursor.close()
+
+                            val botToken = getSetting("bot_token")
+                            if (!telegramFileId.isNullOrEmpty() && !botToken.isNullOrEmpty()) {
+                                try {
+                                    val getFileUrl = "https://api.telegram.org/bot$botToken/getFile?file_id=$telegramFileId"
+                                    val req = Request.Builder().url(getFileUrl).build()
+                                    val res = httpClient.newCall(req).execute()
+                                    val jsonMap = gson.fromJson(res.body?.string(), Map::class.java)
+                                    val result = jsonMap["result"] as? Map<String, Any>
+                                    val filePath = result?.get("file_path") as? String
+
+                                    if (!filePath.isNullOrEmpty()) {
+                                        val dlUrl = "https://api.telegram.org/file/bot$botToken/$filePath"
+                                        val dlReq = Request.Builder().url(dlUrl).build()
+                                        val dlRes = httpClient.newCall(dlReq).execute()
+                                        val dlBytes = dlRes.body?.bytes()
+                                        if (dlBytes != null) {
+                                            storageDir.mkdirs()
+                                            encFile.writeBytes(dlBytes)
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+                        }
+
+                        if (!encFile.exists()) return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "File not found")
+
+                        return try {
+                            val decrypted = CryptoEngine.decryptBytes(encFile.readBytes(), masterKey!!)
+                            newFixedLengthResponse(Response.Status.OK, "video/mp4", ByteArrayInputStream(decrypted), decrypted.size.toLong())
+                        } catch (e: Exception) {
+                            newFixedLengthResponse(Response.Status.OK, "video/mp4", ByteArrayInputStream(encFile.readBytes()), encFile.length())
+                        }
                     }
                     else -> {
                         val assetPath = if (uri == "/" || uri.isEmpty()) "index.html" else uri.removePrefix("/")
