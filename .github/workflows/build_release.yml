@@ -20,11 +20,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: 'temurin'
           java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Setup Gradle Environment
         uses: gradle/actions/setup-gradle@v3
@@ -32,7 +35,7 @@ jobs:
       - name: Build Android APK
         run: |
           cd android
-          gradle assembleDebug --no-daemon --stacktrace
+          gradle assembleDebug --stacktrace --info
 
       - name: Prepare APK Asset
         run: |
@@ -48,10 +51,10 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.2
-          name: VaultGram Release v1.0.2
+          tag_name: v1.0.3
+          name: VaultGram Release v1.0.3
           body: |
-            ## 🚀 VaultGram Release v1.0.2
+            ## 🚀 VaultGram Release v1.0.3
             
             ### 📱 Download Installable APK:
             - **VaultGram.apk**: Android App for Zero-Knowledge Telegram Storage.
