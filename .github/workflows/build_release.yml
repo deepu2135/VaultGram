@@ -35,7 +35,7 @@ jobs:
       - name: Build Android APK
         run: |
           cd android
-          gradle assembleDebug --no-daemon
+          gradle assembleRelease --no-daemon
 
       - name: Prepare APK Asset
         run: |
@@ -51,16 +51,16 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.9
-          name: VaultGram Release v1.0.9
+          tag_name: v2.0.5
+          name: VaultGram Release v2.0.5
           body: |
-            ## 🚀 VaultGram Release v1.0.9
+            ## 🚀 VaultGram Release v2.0.5
             
             ### 📱 Download Installable APK:
-            - **VaultGram.apk**: Android App for Zero-Knowledge Telegram Storage.
-            - Client-Side AES-256-GCM Encryption.
-            - Instant Background Cloud Backup.
-            - Chitralaya Material 3 Gallery Interface.
+            - **VaultGram.apk**: Standalone Android App signed with official persistent release key.
+            - Supports **1-Click In-Place Updates** without package conflicts!
+            - Native Android Photo/File Picker.
+            - Embedded Zero-Knowledge AES-256 Cloud Engine.
           files: artifacts/VaultGram.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

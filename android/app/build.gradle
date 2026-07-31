@@ -11,19 +11,29 @@ android {
         applicationId "com.vaultgram.app"
         minSdk 24
         targetSdk 34
-        versionCode 3
-        versionName "2.0.4"
+        versionCode 5
+        versionName "2.0.5"
+    }
+
+    signingConfigs {
+        release {
+            storeFile file('vaultgram-release.jks')
+            storePassword 'vaultgram123'
+            keyAlias 'vaultgram'
+            keyPassword 'vaultgram123'
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
         }
         debug {
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
         }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
