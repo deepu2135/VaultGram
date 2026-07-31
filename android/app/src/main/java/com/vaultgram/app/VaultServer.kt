@@ -238,10 +238,12 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
                             Thread {
                                 try {
                                     val url = "https://api.telegram.org/bot$botToken/sendDocument"
+                                    val caption = "🔒 VaultGram Encrypted Cloud File\n📄 Name: $filename\n🔑 Node ID: $nodeId\n📦 Size: ${rawFile.length()} bytes"
                                     val body = MultipartBody.Builder()
                                         .setType(MultipartBody.FORM)
                                         .addFormDataPart("chat_id", channelId)
-                                        .addFormDataPart("document", encFile.name, encFile.asRequestBody("application/octet-stream".toMediaType()))
+                                        .addFormDataPart("caption", caption)
+                                        .addFormDataPart("document", filename, encFile.asRequestBody("application/octet-stream".toMediaType()))
                                         .build()
                                     val req = Request.Builder().url(url).post(body).build()
                                     httpClient.newCall(req).execute()

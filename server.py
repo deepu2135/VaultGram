@@ -24,7 +24,7 @@ tdlib.start()
 MASTER_KEY = None
 SALT = None
 
-def upload_to_telegram_channel(bot_token: str, chat_id: str, file_path: str, caption: str) -> Optional[int]:
+def upload_to_telegram_channel(bot_token: str, chat_id: str, file_path: str, caption: str, original_filename: str = "document.bin") -> Optional[int]:
     """Upload encrypted document to Telegram Channel using Telegram API."""
     try:
         import urllib.request
@@ -35,7 +35,7 @@ def upload_to_telegram_channel(bot_token: str, chat_id: str, file_path: str, cap
         body = []
         body.append(f'--{boundary}\r\nContent-Disposition: form-data; name="chat_id"\r\n\r\n{chat_id}\r\n'.encode())
         body.append(f'--{boundary}\r\nContent-Disposition: form-data; name="caption"\r\n\r\n{caption}\r\n'.encode())
-        body.append(f'--{boundary}\r\nContent-Disposition: form-data; name="document"; filename="enc.bin"\r\nContent-Type: application/octet-stream\r\n\r\n'.encode())
+        body.append(f'--{boundary}\r\nContent-Disposition: form-data; name="document"; filename="{original_filename}"\r\nContent-Type: application/octet-stream\r\n\r\n'.encode())
         
         with open(file_path, 'rb') as f:
             file_bytes = f.read()

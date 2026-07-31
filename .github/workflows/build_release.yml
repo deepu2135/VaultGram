@@ -51,15 +51,14 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.1.0
-          name: VaultGram Release v2.1.0
+          tag_name: v2.1.1
+          name: VaultGram Release v2.1.1
           body: |
-            ## 🚀 VaultGram Release v2.1.0
+            ## 🚀 VaultGram Release v2.1.1
             
             ### 📱 Download Installable APK:
             - **VaultGram.apk**: Standalone Android App signed with official persistent release key.
-            - Added `/api/nodes/cleanup` endpoint for phantom file maintenance.
-            - TeleFlix-style ultra-clean setup screen.
+            - Preserves original human-readable file names & adds rich metadata captions in Telegram channel posts.
             - Native Android Photo/File Picker.
             - Embedded Zero-Knowledge AES-256 Cloud Engine.
           files: artifacts/VaultGram.apk
