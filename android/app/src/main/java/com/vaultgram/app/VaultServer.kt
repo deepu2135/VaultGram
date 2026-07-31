@@ -13,7 +13,6 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.ByteArrayInputStream
 import java.io.File
-import java.io.FileInputStream
 import java.util.UUID
 import javax.crypto.SecretKey
 
@@ -102,8 +101,8 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
                         val key = CryptoEngine.deriveKey(passphrase, salt)
                         val verifier = CryptoEngine.encryptBytes("{\"test\":\"ok\"}".toByteArray(), key)
                         saveSetting("passphrase_verifier", android.util.Base64.encodeToString(verifier, android.util.Base64.NO_WRAP))
-                        if (!botToken.isNull_orEmpty()) saveSetting("bot_token", botToken)
-                        if (!channelId.isNull_orEmpty()) saveSetting("channel_id", channelId)
+                        if (!botToken.isNullOrEmpty()) saveSetting("bot_token", botToken!!)
+                        if (!channelId.isNullOrEmpty()) saveSetting("channel_id", channelId!!)
 
                         masterKey = key
                         return newJsonResponse(mapOf("status" to "success", "unlocked" to true))
@@ -241,5 +240,3 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
         override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {}
     }
 }
-
-private fun String?.isNull_orEmpty(): Boolean = this == null || this.trim().isEmpty()
