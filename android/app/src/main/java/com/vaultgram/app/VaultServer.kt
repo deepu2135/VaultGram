@@ -132,6 +132,23 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
                         (map["channel_id"] as? String)?.let { saveSetting("channel_id", it) }
                         return newJsonResponse(mapOf("status" to "success"))
                     }
+                    "/api/folders/create" -> {
+                        val map = gson.fromJson(postData, Map::class.java)
+                        val name = map["name"] as? String ?: return new400Response()
+                        val parentId = map["parent_id"] as? String
+                        val folderId = "dir_${UUID.randomUUID().toString().replace("-", "").take(12)}"
+
+                        val db = dbHelper.writableDatabase
+                        val cv = ContentValues().apply {
+                            put("id", folderId)
+                            put("name", name)
+                            put("type", "directory")
+                            put("parent_id", parentId)
+                            put("created_at", System.currentTimeMillis().toString())
+                        }
+                        db.insert("nodes", null, cv)
+                        return newJsonResponse(mapOf("status" to "success", "folder_id" to folderId))
+                    }
                     "/api/nodes/wipe" -> {
                         val db = dbHelper.writableDatabase
                         db.execSQL("DELETE FROM nodes")
