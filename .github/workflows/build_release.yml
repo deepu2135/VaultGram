@@ -29,13 +29,16 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Setup Gradle Environment
-        uses: gradle/actions/setup-gradle@v3
+      - name: Generate Matching Gradle 8.4 Wrapper
+        run: |
+          cd android
+          gradle wrapper --gradle-version 8.4
+          chmod +x gradlew
 
       - name: Build Android APK
         run: |
           cd android
-          gradle assembleDebug --stacktrace --info
+          ./gradlew assembleDebug --no-daemon
 
       - name: Prepare APK Asset
         run: |
@@ -51,10 +54,10 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.3
-          name: VaultGram Release v1.0.3
+          tag_name: v1.0.4
+          name: VaultGram Release v1.0.4
           body: |
-            ## 🚀 VaultGram Release v1.0.3
+            ## 🚀 VaultGram Release v1.0.4
             
             ### 📱 Download Installable APK:
             - **VaultGram.apk**: Android App for Zero-Knowledge Telegram Storage.
