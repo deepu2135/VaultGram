@@ -220,31 +220,32 @@ function renderMediaGrid() {
         const isAudio = item.mime_type && (item.mime_type.startsWith('audio') || item.name.endsWith('.mp3') || item.name.endsWith('.m4a') || item.name.endsWith('.wav') || item.name.endsWith('.ogg'));
 
         if (isImage) {
-            card.onclick = () => downloadFile(item.id, item.name);
             card.innerHTML = `
-                <img src="/api/download/${item.id}" alt="${escapeHtml(item.name)}" loading="lazy" />
+                <img src="${SERVER_URL}/api/download/${item.id}" alt="${escapeHtml(item.name)}" loading="lazy" style="width:100%; height:100%; object-fit:cover; border-radius:12px;" />
                 <button class="delete-btn" onclick="deleteFileNode(event, '${item.id}')" title="Delete file"><i class="fa-solid fa-trash"></i></button>
                 <div class="media-name">${escapeHtml(item.name)}</div>
             `;
         } else if (isVideo) {
             card.innerHTML = `
-                <video src="/api/download/${item.id}" controls preload="metadata" style="width:100%; height:100%; object-fit:cover;"></video>
+                <video src="${SERVER_URL}/api/download/${item.id}" controls preload="metadata" style="width:100%; height:100%; object-fit:cover; border-radius:12px;"></video>
                 <button class="delete-btn" onclick="deleteFileNode(event, '${item.id}')" title="Delete file"><i class="fa-solid fa-trash"></i></button>
                 <div class="media-name">${escapeHtml(item.name)}</div>
             `;
         } else if (isAudio) {
             card.innerHTML = `
-                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:12px; background:var(--primary-container);">
-                    <i class="fa-solid fa-music" style="font-size:36px; color:var(--primary); margin-bottom:8px;"></i>
-                    <audio src="/api/download/${item.id}" controls style="width:100%; max-width:140px; height:32px; margin-top:4px;"></audio>
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:14px; background: #271D1B; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(255, 180, 171, 0.15); display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
+                        <i class="fa-solid fa-music" style="font-size: 24px; color: var(--primary);"></i>
+                    </div>
+                    <div class="media-name" style="position:static; margin-bottom: 6px; text-align:center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(item.name)}</div>
+                    <audio src="${SERVER_URL}/api/download/${item.id}" controls style="width: 100%; height: 36px;"></audio>
                 </div>
                 <button class="delete-btn" onclick="deleteFileNode(event, '${item.id}')" title="Delete file"><i class="fa-solid fa-trash"></i></button>
-                <div class="media-name">${escapeHtml(item.name)}</div>
             `;
         } else {
             card.onclick = () => downloadFile(item.id, item.name);
             card.innerHTML = `
-                <div class="media-placeholder">
+                <div class="media-placeholder" style="border-radius:12px;">
                     <i class="fa-solid fa-file-shield"></i>
                 </div>
                 <button class="delete-btn" onclick="deleteFileNode(event, '${item.id}')" title="Delete file"><i class="fa-solid fa-trash"></i></button>

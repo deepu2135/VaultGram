@@ -51,16 +51,16 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.1.3
-          name: VaultGram Release v2.1.3
+          tag_name: v2.1.4
+          name: VaultGram Release v2.1.4
           body: |
-            ## 🚀 VaultGram Release v2.1.3
+            ## 🚀 VaultGram Release v2.1.4
             
             ### 📱 Download Installable APK:
             - **VaultGram.apk**: Standalone Android App signed with official persistent release key.
-            - **One-Time Passphrase Setup**: Enter Master Encryption Passphrase once on setup, and future launches open **INSTANTLY**!
-            - Tap "Lock Vault" in settings anytime to relock.
-            - Native Android Photo/File Picker.
+            - Full responsive poster thumbnails for Photos, Videos, and Audio tracks.
+            - Embedded `<video controls>` & `<audio controls>` players.
+            - One-Time Passphrase Setup.
             - Embedded Zero-Knowledge AES-256 Cloud Engine.
           files: artifacts/VaultGram.apk
         env:
