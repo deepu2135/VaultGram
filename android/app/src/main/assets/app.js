@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function getServerUrl() {
     return localStorage.getItem('vaultgram_server_url') || (window.location.protocol.startsWith('http') ? '' : 'http://127.0.0.1:8000');
 }
+const SERVER_URL = getServerUrl();
 
 function setServerUrl(url) {
     if (url) {
