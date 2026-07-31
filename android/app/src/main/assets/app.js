@@ -5,24 +5,36 @@ document.addEventListener('DOMContentLoaded', () => {
     checkAuthStatus();
 });
 
-const SERVER_URL = window.location.protocol.startsWith('http') ? '' : (localStorage.getItem('vaultgram_server_url') || 'http://127.0.0.1:8000');
+function getServerUrl() {
+    return localStorage.getItem('vaultgram_server_url') || (window.location.protocol.startsWith('http') ? '' : 'http://127.0.0.1:8000');
+}
+
+function setServerUrl(url) {
+    if (url) {
+        url = url.trim().replace(/\/+$/, '');
+        localStorage.setItem('vaultgram_server_url', url);
+    }
+}
+
+function toggleServerConfig() {
+    const group = document.getElementById('serverUrlGroup');
+    if (group.style.display === 'none' || !group.style.display) {
+        group.style.display = 'block';
+        document.getElementById('serverUrlInput').value = getServerUrl();
+    } else {
+        group.style.display = 'none';
+    }
+}
 
 async function checkAuthStatus() {
+    const serverUrl = getServerUrl();
     try {
-        const res = await fetch(`${SERVER_URL}/api/auth/status`);
+        const res = await fetch(`${serverUrl}/api/auth/status`);
         const data = await res.json();
 
         const authOverlay = document.getElementById('authOverlay');
-        const botConfigGroup = document.getElementById('botConfigGroup');
-        const authBtn = document.getElementById('authBtn');
+        const botGroup = document.getElementById('botConfigGroup');
         const authSubtitle = document.getElementById('authSubtitle');
-
-        if (!data.configured) {
-            authOverlay.style.display = 'flex';
-            botConfigGroup.style.display = 'block';
-            authSubtitle.textContent = 'Set up your Master Passphrase & Telegram Bot Token';
-            authBtn.innerHTML = '<i class="fa-solid fa-rocket"></i> Initialize Vault';
-        } else if (!data.unlocked) {
             authOverlay.style.display = 'flex';
             botConfigGroup.style.display = 'none';
             authSubtitle.textContent = 'Vault is locked. Enter Master Passphrase';
@@ -41,12 +53,19 @@ async function handleAuthSubmit(e) {
     const passphrase = document.getElementById('passphraseInput').value;
     const botToken = document.getElementById('botTokenInput').value;
     const channelId = document.getElementById('channelIdInput')?.value;
+    const customUrlInput = document.getElementById('serverUrlInput');
     const statusMsg = document.getElementById('authStatusMsg');
 
-    statusMsg.textContent = 'Processing...';
+    if (customUrlInput && customUrlInput.value) {
+        setServerUrl(customUrlInput.value);
+    }
+
+    const serverUrl = getServerUrl();
+    statusMsg.style.color = 'var(--primary)';
+    statusMsg.textContent = 'Connecting to VaultGram...';
 
     const isSetup = document.getElementById('botConfigGroup').style.display !== 'none';
-    const endpoint = isSetup ? '/api/auth/setup' : '/api/auth/unlock';
+    const endpoint = isSetup ? `${serverUrl}/api/auth/setup` : `${serverUrl}/api/auth/unlock`;
     const payload = isSetup ? { passphrase, bot_token: botToken, channel_id: channelId } : { passphrase };
 
     try {
@@ -62,11 +81,11 @@ async function handleAuthSubmit(e) {
             loadCurrentTabData();
         } else {
             statusMsg.textContent = data.detail || 'Authentication failed';
-            statusMsg.style.color = '#ef4444';
+            statusMsg.style.color = 'var(--danger)';
         }
     } catch (err) {
-        statusMsg.textContent = 'Connection error';
-        statusMsg.style.color = '#ef4444';
+        statusMsg.style.color = 'var(--danger)';
+        statusMsg.innerHTML = '❌ <strong>Connection Error</strong>.<br><small>Could not connect to VaultGram server at ' + (serverUrl || 'http://127.0.0.1:8000') + '. Make sure server.py is running!</small>';
     }
 }
 

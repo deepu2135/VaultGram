@@ -36,11 +36,21 @@
                     <input type="password" id="passphraseInput" placeholder="Enter your secret passphrase" required />
                 </div>
 
+                <div id="serverUrlGroup" class="form-group" style="display: none; background: #140C0A; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                    <label><i class="fa-solid fa-server"></i> Server Host Address</label>
+                    <input type="text" id="serverUrlInput" placeholder="http://192.168.1.100:8000 or http://127.0.0.1:8000" />
+                    <small style="color: var(--primary);">Enter IP of computer/Termux running server.py</small>
+                </div>
+
                 <button type="submit" id="authBtn" class="btn btn-primary btn-block">
                     <i class="fa-solid fa-lock-open"></i> Unlock Gallery
                 </button>
+
+                <button type="button" class="btn btn-outline btn-block" style="margin-top: 8px; font-size: 12px;" onclick="toggleServerConfig()">
+                    <i class="fa-solid fa-network-wired"></i> Change Server Host IP
+                </button>
             </form>
-            <div id="authStatusMsg" class="status-msg" style="margin-top: 10px;"></div>
+            <div id="authStatusMsg" class="status-msg" style="margin-top: 10px; text-align: center;"></div>
         </div>
     </div>
 
