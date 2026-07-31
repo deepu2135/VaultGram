@@ -26,6 +26,15 @@ function toggleServerConfig() {
     }
 }
 
+function toggleBotConfig() {
+    const group = document.getElementById('botConfigGroup');
+    if (group.style.display === 'none' || !group.style.display) {
+        group.style.display = 'block';
+    } else {
+        group.style.display = 'none';
+    }
+}
+
 async function checkAuthStatus() {
     const serverUrl = getServerUrl();
     try {
@@ -35,13 +44,23 @@ async function checkAuthStatus() {
         const authOverlay = document.getElementById('authOverlay');
         const botGroup = document.getElementById('botConfigGroup');
         const authSubtitle = document.getElementById('authSubtitle');
-            authOverlay.style.display = 'flex';
-            botConfigGroup.style.display = 'none';
-            authSubtitle.textContent = 'Vault is locked. Enter Master Passphrase';
-            authBtn.innerHTML = '<i class="fa-solid fa-lock-open"></i> Unlock Vault';
-        } else {
+        const authBtn = document.getElementById('authBtn');
+
+        if (data.unlocked) {
             authOverlay.style.display = 'none';
             loadCurrentTabData();
+            return;
+        }
+
+        authOverlay.style.display = 'flex';
+        if (!data.configured || !data.bot_configured) {
+            botGroup.style.display = 'block';
+            authSubtitle.textContent = 'Setup: Enter Telegram Bot Credentials & Master Passphrase';
+            if (authBtn) authBtn.innerHTML = '<i class="fa-solid fa-key"></i> Save & Unlock Gallery';
+        } else {
+            botGroup.style.display = 'none';
+            authSubtitle.textContent = 'Vault is locked. Enter Master Passphrase';
+            if (authBtn) authBtn.innerHTML = '<i class="fa-solid fa-lock-open"></i> Unlock Gallery';
         }
     } catch (err) {
         console.error('Error checking auth status:', err);
