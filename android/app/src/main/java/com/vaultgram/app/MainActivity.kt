@@ -19,13 +19,15 @@ class MainActivity : AppCompatActivity() {
             domStorageEnabled = true
             allowFileAccess = true
             allowContentAccess = true
+            allowFileAccessFromFileURLs = true
+            allowUniversalAccessFromFileURLs = true
             useWideViewPort = true
             loadWithOverviewMode = true
             cacheMode = WebSettings.LOAD_DEFAULT
         }
 
         webView.webViewClient = WebViewClient()
-        webView.loadUrl("http://127.0.0.1:8000")
+        webView.loadUrl("file:///android_asset/index.html")
     }
 
     override fun onBackPressed() {
