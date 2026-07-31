@@ -8,9 +8,19 @@ import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView
+    private var vaultServer: VaultServer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Start Embedded VaultEngine Server on 127.0.0.1:8000
+        try {
+            vaultServer = VaultServer(applicationContext, 8000)
+            vaultServer?.start()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
         webView = WebView(this)
         setContentView(webView)
 
@@ -19,15 +29,22 @@ class MainActivity : AppCompatActivity() {
             domStorageEnabled = true
             allowFileAccess = true
             allowContentAccess = true
-            allowFileAccessFromFileURLs = true
-            allowUniversalAccessFromFileURLs = true
             useWideViewPort = true
             loadWithOverviewMode = true
-            cacheMode = WebSettings.LOAD_DEFAULT
+            cacheMode = WebSettings.LOAD_NO_CACHE
         }
 
         webView.webViewClient = WebViewClient()
-        webView.loadUrl("file:///android_asset/index.html")
+        webView.loadUrl("http://127.0.0.1:8000/")
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            vaultServer?.stop()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     override fun onBackPressed() {
