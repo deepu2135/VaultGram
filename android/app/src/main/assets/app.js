@@ -372,6 +372,9 @@ function navigateToFolder(folderId, folderName) {
 }
 
 async function lockVault() {
+    try {
+        await fetch(`${SERVER_URL}/api/auth/lock`, { method: 'POST' });
+    } catch (e) {}
     location.reload();
 }
 

@@ -31,12 +31,28 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
             if (method == Method.GET) {
                 when {
                     uri == "/api/auth/status" -> {
-                        val isConfigured = getSetting("passphrase_verifier") != null
+                        if (masterKey == null) {
+                            val savedPassphrase = getSetting("saved_passphrase")
+                            if (!savedPassphrase.isNullOrEmpty()) {
+                                try {
+                                    masterKey = CryptoEngine.deriveKey(savedPassphrase, salt)
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+                        }
+                        val isConfigured = getSetting("passphrase_verifier") != null || getSetting("saved_passphrase") != null
                         val botConfigured = getSetting("bot_token") != null
                         val json = mapOf("configured" to isConfigured, "unlocked" to (masterKey != null), "bot_configured" to botConfigured)
                         return newJsonResponse(json)
                     }
                     uri == "/api/media" -> {
+                        if (masterKey == null) {
+                            val savedPassphrase = getSetting("saved_passphrase")
+                            if (!savedPassphrase.isNullOrEmpty()) {
+                                masterKey = CryptoEngine.deriveKey(savedPassphrase, salt)
+                            }
+                        }
                         if (masterKey == null) return new401Response()
                         val db = dbHelper.readableDatabase
                         val cursor = db.rawQuery("SELECT id, name, type, parent_id, size_bytes, mime_type, created_at FROM nodes WHERE type='file' ORDER BY created_at DESC", null)
@@ -224,6 +240,7 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
                         val key = CryptoEngine.deriveKey(passphrase, salt)
                         val verifier = CryptoEngine.encryptBytes("{\"test\":\"ok\"}".toByteArray(), key)
                         saveSetting("passphrase_verifier", android.util.Base64.encodeToString(verifier, android.util.Base64.NO_WRAP))
+                        saveSetting("saved_passphrase", passphrase)
                         if (!botToken.isNullOrEmpty()) saveSetting("bot_token", botToken!!)
                         if (!channelId.isNullOrEmpty()) saveSetting("channel_id", channelId!!)
 
@@ -241,6 +258,7 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
                             val decrypted = String(CryptoEngine.decryptBytes(verifierBytes, key))
                             if (decrypted.contains("test")) {
                                 masterKey = key
+                                saveSetting("saved_passphrase", passphrase)
                                 newJsonResponse(mapOf("status" to "success", "unlocked" to true))
                             } else {
                                 new401Response()
@@ -248,6 +266,11 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
                         } catch (e: Exception) {
                             new401Response()
                         }
+                    }
+                    "/api/auth/lock" -> {
+                        masterKey = null
+                        saveSetting("saved_passphrase", "")
+                        return newJsonResponse(mapOf("status" to "success", "unlocked" to false))
                     }
                     "/api/settings" -> {
                         val map = gson.fromJson(postData, Map::class.java)
