@@ -51,13 +51,14 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.0.5
-          name: VaultGram Release v2.0.5
+          tag_name: v2.0.6
+          name: VaultGram Release v2.0.6
           body: |
-            ## 🚀 VaultGram Release v2.0.5
+            ## 🚀 VaultGram Release v2.0.6
             
             ### 📱 Download Installable APK:
             - **VaultGram.apk**: Standalone Android App signed with official persistent release key.
+            - Valid PNG resource headers for AAPT2 compilation.
             - Supports **1-Click In-Place Updates** without package conflicts!
             - Native Android Photo/File Picker.
             - Embedded Zero-Knowledge AES-256 Cloud Engine.
