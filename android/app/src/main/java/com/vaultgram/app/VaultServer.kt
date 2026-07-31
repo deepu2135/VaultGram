@@ -248,21 +248,32 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
     }
 
     private fun saveSetting(key: String, value: String) {
-        val db = dbHelper.writableDatabase
-        val cv = ContentValues().apply {
-            put("key", key)
-            put("value", value)
+        try {
+            val db = dbHelper.writableDatabase
+            db.execSQL("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)")
+            val cv = ContentValues().apply {
+                put("key", key)
+                put("value", value)
+            }
+            db.insertWithOnConflict("settings", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        db.insertWithOnConflict("settings", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
     private fun getSetting(key: String): String? {
-        val db = dbHelper.readableDatabase
-        val cursor = db.rawQuery("SELECT value FROM settings WHERE key=?", arrayOf(key))
-        var valResult: String? = null
-        if (cursor.moveToFirst()) valResult = cursor.getString(0)
-        cursor.close()
-        return valResult
+        return try {
+            val db = dbHelper.readableDatabase
+            db.execSQL("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)")
+            val cursor = db.rawQuery("SELECT value FROM settings WHERE key=?", arrayOf(key))
+            var valResult: String? = null
+            if (cursor.moveToFirst()) valResult = cursor.getString(0)
+            cursor.close()
+            valResult
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 
     private fun newJsonResponse(data: Any): Response {
@@ -275,9 +286,17 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
 
     private class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "vault.db", null, 1) {
         override fun onCreate(db: SQLiteDatabase) {
+            createTables(db)
+        }
+        override fun onOpen(db: SQLiteDatabase) {
+            super.onOpen(db)
+            createTables(db)
+        }
+        override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {}
+
+        private fun createTables(db: SQLiteDatabase) {
             db.execSQL("CREATE TABLE IF NOT EXISTS nodes (id TEXT PRIMARY KEY, name TEXT, type TEXT, parent_id TEXT, telegram_msg_id INTEGER, telegram_file_id TEXT, size_bytes INTEGER, mime_type TEXT, sha256 TEXT, created_at TEXT)")
             db.execSQL("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)")
         }
-        override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {}
     }
 }

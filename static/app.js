@@ -369,13 +369,15 @@ function escapeHtml(str) {
 async function openSettingsModal() {
     try {
         const res = await fetch(`${SERVER_URL}/api/settings`);
-        const data = await res.json();
-        document.getElementById('settingsBotToken').value = data.bot_token || '';
-        document.getElementById('settingsChannelId').value = data.channel_id || '';
-        document.getElementById('settingsOverlay').style.display = 'flex';
+        if (res.ok) {
+            const data = await res.json();
+            document.getElementById('settingsBotToken').value = data.bot_token || '';
+            document.getElementById('settingsChannelId').value = data.channel_id || '';
+        }
     } catch (err) {
-        alert('Failed to load settings');
+        console.error('Error loading settings:', err);
     }
+    document.getElementById('settingsOverlay').style.display = 'flex';
 }
 
 function closeSettingsModal() {
