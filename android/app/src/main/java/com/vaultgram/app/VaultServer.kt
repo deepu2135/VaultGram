@@ -106,7 +106,7 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
 
                         var syncedCount = 0
                         try {
-                            val url = "https://api.telegram.org/bot$botToken/getUpdates?limit=100"
+                            val url = "https://api.telegram.org/bot$botToken/getUpdates?limit=100&allowed_updates=[\"channel_post\",\"message\"]"
                             val req = Request.Builder().url(url).build()
                             val response = httpClient.newCall(req).execute()
                             val jsonStr = response.body?.string() ?: ""
@@ -120,18 +120,28 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
                                 val doc = (post["document"] as? Map<String, Any>) ?: (post["video"] as? Map<String, Any>)
                                 if (doc != null) {
                                     val fileId = doc["file_id"] as? String ?: continue
-                                    var fileName = doc["file_name"] as? String ?: "telegram_video_${UUID.randomUUID().toString().take(6)}.mp4"
+                                    var fileName = doc["file_name"] as? String ?: "telegram_media_${fileId.take(6)}.mp4"
                                     val fileSize = (doc["file_size"] as? Number)?.toLong() ?: 0L
                                     var mimeType = doc["mime_type"] as? String ?: "video/mp4"
 
                                     val caption = post["caption"] as? String ?: ""
-                                    if (caption.contains("Name: ")) {
+                                    if (caption.trim().startsWith("{") && caption.contains("iv")) {
+                                        try {
+                                            val capJson = gson.fromJson(caption.trim(), Map::class.java)
+                                            if (capJson.containsKey("name")) {
+                                                fileName = capJson["name"] as String
+                                            }
+                                        } catch (e: Exception) {}
+                                    } else if (caption.contains("Name: ")) {
                                         val match = Regex("Name:\\s*(.+)").find(caption)
                                         if (match != null) fileName = match.groupValues[1].trim()
                                     }
 
-                                    if (fileName.endsWith(".mp4") || fileName.endsWith(".mkv") || fileName.endsWith(".avi") || fileName.endsWith(".bin") || mimeType.contains("video")) {
+                                    val lowerName = fileName.lowercase()
+                                    if (lowerName.endsWith(".mp4") || lowerName.endsWith(".mkv") || lowerName.endsWith(".avi") || lowerName.endsWith(".bin") || lowerName.endsWith(".enc") || mimeType.contains("video")) {
                                         mimeType = "video/mp4"
+                                    } else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".png") || lowerName.endsWith(".jpeg") || mimeType.contains("image")) {
+                                        mimeType = "image/jpeg"
                                     }
 
                                     val cursor = db.rawQuery("SELECT id FROM nodes WHERE telegram_file_id=?", arrayOf(fileId))

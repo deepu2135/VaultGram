@@ -147,7 +147,71 @@ class VaultGramHTTPHandler(BaseHTTPRequestHandler):
             bot_token = vfs.get_setting("bot_token") or ""
             channel_id = vfs.get_setting("channel_id") or ""
             self._set_headers(200)
-            self.wfile.write(json.dumps({"bot_token": bot_token, "channel_id": channel_id}).encode('utf-8'))
+            self.wfile.write(json.dumps({
+                "bot_token": bot_token,
+                "channel_id": channel_id
+            }).encode('utf-8'))
+
+        elif path == "/api/sync":
+            if MASTER_KEY is None:
+                self._set_headers(401)
+                self.wfile.write(json.dumps({"detail": "Locked"}).encode('utf-8'))
+                return
+
+            bot_token = vfs.get_setting("bot_token")
+            if not bot_token:
+                self._set_headers(400)
+                self.wfile.write(json.dumps({"detail": "Bot Token not configured"}).encode('utf-8'))
+                return
+
+            synced_count = 0
+            try:
+                import urllib.request, re
+                url = f"https://api.telegram.org/bot{bot_token}/getUpdates?limit=100&allowed_updates=[\"channel_post\",\"message\"]"
+                req = urllib.request.Request(url)
+                with urllib.request.urlopen(req) as resp:
+                    res_data = json.loads(resp.read().decode('utf-8'))
+                    results = res_data.get("result", [])
+                    for item in results:
+                        post = item.get("channel_post") or item.get("message") or {}
+                        doc = post.get("document") or post.get("video")
+                        if doc:
+                            file_id = doc.get("file_id")
+                            file_name = doc.get("file_name", f"telegram_media_{file_id[:6]}.mp4")
+                            file_size = doc.get("file_size", 0)
+                            mime_type = doc.get("mime_type", "video/mp4")
+
+                            caption = post.get("caption", "")
+                            if caption.strip().startswith("{") and "iv" in caption:
+                                try:
+                                    cap_json = json.loads(caption.strip())
+                                    if "name" in cap_json:
+                                        file_name = cap_json["name"]
+                                except Exception:
+                                    pass
+                            elif "Name: " in caption:
+                                match = re.search(r"Name:\s*(.+)", caption)
+                                if match:
+                                    file_name = match.group(1).strip()
+
+                            lower_name = file_name.lower()
+                            if lower_name.endswith(".mp4") or lower_name.endswith(".mkv") or lower_name.endswith(".avi") or lower_name.endswith(".bin") or lower_name.endswith(".enc") or "video" in mime_type:
+                                mime_type = "video/mp4"
+
+                            with sqlite3.connect(vfs.db_path) as conn:
+                                cur = conn.cursor()
+                                cur.execute("SELECT id FROM nodes WHERE telegram_file_id=?", (file_id,))
+                                if not cur.fetchone():
+                                    node_id = f"file_{uuid.uuid4().hex[:12]}"
+                                    vfs.add_node(node_id, file_name, "file", None, size_bytes=file_size, mime_type=mime_type)
+                                    cur.execute("UPDATE nodes SET telegram_file_id=? WHERE id=?", (file_id, node_id))
+                                    conn.commit()
+                                    synced_count += 1
+            except Exception as e:
+                print("Sync error:", e)
+
+            self._set_headers(200)
+            self.wfile.write(json.dumps({"status": "success", "synced": synced_count}).encode('utf-8'))
 
         elif path.startswith("/api/download/"):
             node_id = path.replace("/api/download/", "")
