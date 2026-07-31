@@ -14,47 +14,33 @@
         <div class="auth-card">
             <div class="auth-header">
                 <div class="brand-logo">
-                    <img src="logo.png" alt="VaultGram" style="width: 42px; height: 42px; border-radius: 10px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.4);" />
+                    <img src="logo.png" alt="VaultGram" style="width: 48px; height: 48px; border-radius: 12px; object-fit: cover; box-shadow: 0 4px 16px rgba(0,0,0,0.5);" />
                     <h2>VaultGram</h2>
                 </div>
-                <p id="authSubtitle">Zero-Knowledge Encrypted Telegram Cloud</p>
+                <p id="authSubtitle">Unlimited Encrypted Telegram Cloud Storage</p>
             </div>
             
             <form id="authForm" onsubmit="handleAuthSubmit(event)">
-                <div id="botConfigGroup" class="form-group" style="display: none;">
+                <div id="botConfigGroup" class="form-group">
                     <label><i class="fa-solid fa-robot"></i> Telegram Bot Token</label>
-                    <input type="text" id="botTokenInput" placeholder="123456789:ABCdefGHIjkl..." />
-                    <small>Get your token from @BotFather on Telegram</small>
+                    <input type="text" id="botTokenInput" placeholder="e.g. 123456789:ABCdefGHIjkl..." />
+                    <small>Create a bot via @BotFather on Telegram</small>
 
-                    <label style="margin-top: 14px;"><i class="fa-solid fa-bullhorn"></i> Telegram Channel Username / ID</label>
-                    <input type="text" id="channelIdInput" placeholder="@my_private_channel or -100123456789" />
-                    <small>Bot MUST be added as Admin in this channel!</small>
+                    <label style="margin-top: 12px;"><i class="fa-solid fa-paper-plane"></i> Telegram Channel ID / Username</label>
+                    <input type="text" id="channelIdInput" placeholder="e.g. @my_private_channel or -100123456789" />
+                    <small>Add your bot as Admin in your private channel</small>
                 </div>
 
                 <div class="form-group">
-                    <label><i class="fa-solid fa-shield-halved"></i> Master Encryption Passphrase</label>
-                    <input type="password" id="passphraseInput" placeholder="Enter your secret passphrase" required />
-                </div>
-
-                <div id="serverUrlGroup" class="form-group" style="display: none; background: #140C0A; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-                    <label><i class="fa-solid fa-server"></i> Server Host Address</label>
-                    <input type="text" id="serverUrlInput" placeholder="http://192.168.1.100:8000 or http://127.0.0.1:8000" />
-                    <small style="color: var(--primary);">Enter IP of computer/Termux running server.py</small>
+                    <label><i class="fa-solid fa-lock"></i> Master Encryption Passphrase</label>
+                    <input type="password" id="passphraseInput" placeholder="Create or enter your master password" required />
                 </div>
 
                 <button type="submit" id="authBtn" class="btn btn-primary btn-block">
-                    <i class="fa-solid fa-lock-open"></i> Unlock Gallery
-                </button>
-
-                <button type="button" class="btn btn-outline btn-block" style="margin-top: 8px; font-size: 12px;" onclick="toggleBotConfig()">
-                    <i class="fa-solid fa-robot"></i> Edit Telegram Bot Token & Channel ID
-                </button>
-
-                <button type="button" class="btn btn-outline btn-block" style="margin-top: 8px; font-size: 12px;" onclick="toggleServerConfig()">
-                    <i class="fa-solid fa-network-wired"></i> Change Server Host IP
+                    <i class="fa-solid fa-rocket"></i> Launch VaultGram
                 </button>
             </form>
-            <div id="authStatusMsg" class="status-msg" style="margin-top: 10px; text-align: center;"></div>
+            <div id="authStatusMsg" class="status-msg" style="margin-top: 12px; text-align: center;"></div>
         </div>
     </div>
 

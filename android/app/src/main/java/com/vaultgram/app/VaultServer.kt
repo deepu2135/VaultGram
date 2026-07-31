@@ -180,6 +180,22 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
                         storageDir.listFiles()?.forEach { it.delete() }
                         return newJsonResponse(mapOf("status" to "success"))
                     }
+                    "/api/nodes/cleanup" -> {
+                        val db = dbHelper.writableDatabase
+                        val storageDir = File(context.filesDir, "storage")
+                        val cursor = db.rawQuery("SELECT id FROM nodes WHERE type='file'", null)
+                        var count = 0
+                        while (cursor.moveToNext()) {
+                            val id = cursor.getString(0)
+                            val encFile = File(storageDir, "$id.enc")
+                            if (!encFile.exists()) {
+                                db.delete("nodes", "id=?", arrayOf(id))
+                                count++
+                            }
+                        }
+                        cursor.close()
+                        return newJsonResponse(mapOf("status" to "success", "cleaned" to count))
+                    }
                     "/api/nodes/delete" -> {
                         val map = gson.fromJson(postData, Map::class.java)
                         val nodeId = map["node_id"] as? String ?: return new400Response()
