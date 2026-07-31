@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VaultGram - Encrypted Cloud & Photo Vault</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Auth & Setup Modal -->
+    <div id="authOverlay" class="auth-overlay">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="brand-logo">
+                    <i class="fa-solid fa-shield-halved logo-icon"></i>
+                    <h2>VaultGram</h2>
+                </div>
+                <p id="authSubtitle">Zero-Knowledge Encrypted Telegram Cloud</p>
+            </div>
+            
+            <form id="authForm" onsubmit="handleAuthSubmit(event)">
+                <div id="botConfigGroup" class="form-group" style="display: none;">
+                    <label><i class="fa-solid fa-robot"></i> Telegram Bot Token</label>
+                    <input type="text" id="botTokenInput" placeholder="123456789:ABCdefGHIjkl..." />
+                    <small>Get your token from @BotFather on Telegram</small>
+
+                    <label style="margin-top: 14px;"><i class="fa-solid fa-bullhorn"></i> Telegram Channel Username / ID</label>
+                    <input type="text" id="channelIdInput" placeholder="@my_private_channel or -100123456789" />
+                    <small>Bot MUST be added as Admin in this channel!</small>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fa-solid fa-shield-halved"></i> Master Encryption Passphrase</label>
+                    <input type="password" id="passphraseInput" placeholder="Enter your secret passphrase" required />
+                </div>
+
+                <button type="submit" id="authBtn" class="btn btn-primary btn-block">
+                    <i class="fa-solid fa-lock-open"></i> Unlock Gallery
+                </button>
+            </form>
+            <div id="authStatusMsg" class="status-msg" style="margin-top: 10px;"></div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsOverlay" class="auth-overlay" style="display: none;">
+        <div class="auth-card" style="max-width: 480px;">
+            <div class="auth-header">
+                <div class="brand-logo">
+                    <i class="fa-solid fa-gear logo-icon"></i>
+                    <h2>Vault Settings</h2>
+                </div>
+                <p>Manage Telegram Connection & Cloud Tools</p>
+            </div>
+            
+            <form onsubmit="handleSettingsSave(event)">
+                <!-- Option Section 1: Telegram Connection -->
+                <div class="settings-section" style="background: #140C0A; padding: 16px; border-radius: var(--radius); border: 1px solid var(--border-color); margin-bottom: 16px;">
+                    <h4 style="font-size: 14px; font-weight: 600; color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-paper-plane"></i> Option 1: Telegram Storage Credentials
+                    </h4>
+                    
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-robot"></i> Telegram Bot Token</label>
+                        <input type="text" id="settingsBotToken" placeholder="123456789:ABCdef..." required />
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label><i class="fa-solid fa-bullhorn"></i> Telegram Channel Username / ID</label>
+                        <input type="text" id="settingsChannelId" placeholder="@my_private_channel or -100123456789" required />
+                        <small>Bot MUST be added as Admin in this channel!</small>
+                    </div>
+                </div>
+
+                <!-- Option Section 2: Vault Maintenance -->
+                <div class="settings-section" style="background: #140C0A; padding: 16px; border-radius: var(--radius); border: 1px solid var(--border-color); margin-bottom: 16px;">
+                    <h4 style="font-size: 14px; font-weight: 600; color: var(--text-main); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-screwdriver-wrench"></i> Option 2: Vault Maintenance & Database Reset
+                    </h4>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button type="button" class="btn btn-outline" style="flex:1;" onclick="cleanupPhantomFiles()">
+                            <i class="fa-solid fa-broom"></i> Clean Up
+                        </button>
+                        <button type="button" class="btn btn-outline" style="flex:1; color: var(--danger); border-color: rgba(255, 180, 171, 0.4);" onclick="wipeVaultData()">
+                            <i class="fa-solid fa-trash-can"></i> Wipe Vault
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" style="flex:1;" onclick="closeSettingsModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="flex:1;">Save Settings</button>
+                </div>
+            </form>
+            <div id="settingsStatusMsg" class="status-msg" style="margin-top: 10px; text-align: center;"></div>
+        </div>
+    </div>
+
+    <!-- App Main Layout -->
+    <div id="appContainer" class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-shield-halved logo-icon"></i>
+                <span class="logo-text">VaultGram</span>
+                <span class="badge-tag">AES-256</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button class="nav-item active" onclick="switchTab('photosTab')">
+                    <i class="fa-solid fa-images"></i>
+                    <span>Photos Vault</span>
+                </button>
+                <button class="nav-item" onclick="switchTab('driveTab')">
+                    <i class="fa-solid fa-folder-closed"></i>
+                    <span>Cloud Files</span>
+                </button>
+                <button class="nav-item" onclick="openSettingsModal()">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>Settings</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="btn btn-outline btn-block" onclick="lockVault()">
+                    <i class="fa-solid fa-lock"></i> Lock Vault
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Topbar Header -->
+            <header class="topbar">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" placeholder="Search photos and memories..." id="searchInput" oninput="handleSearch(this.value)">
+                </div>
+
+                <div class="topbar-actions">
+                    <button class="btn btn-secondary" onclick="openCreateFolderModal()">
+                        <i class="fa-solid fa-folder-plus"></i> New Folder
+                    </button>
+                </div>
+            </header>
+
+            <!-- Album Chip Filter Bar (CloudGallery Style) -->
+            <div class="chip-bar">
+                <button class="chip-item active" onclick="filterMedia('all')">All Media</button>
+                <button class="chip-item" onclick="filterMedia('photos')">Photos</button>
+                <button class="chip-item" onclick="filterMedia('videos')">Videos</button>
+                <button class="chip-item" onclick="filterMedia('audio')">Audio</button>
+                <button class="chip-item" onclick="filterMedia('documents')">Documents</button>
+            </div>
+
+            <!-- Photos Vault Tab -->
+            <section id="photosTab" class="content-tab active">
+                <div class="tab-header">
+                    <h2><i class="fa-solid fa-images"></i> Photo Gallery</h2>
+                    <span class="count-badge" id="mediaCountBadge">0 Items</span>
+                </div>
+
+                <div id="emptyState" class="empty-state" style="display: none;">
+                    <i class="fa-solid fa-photo-film empty-icon"></i>
+                    <h3>No Photos Synced Yet</h3>
+                    <p>Your encrypted memories will appear here once backed up to Telegram.</p>
+                </div>
+
+                <div id="mediaGrid" class="media-grid">
+                    <!-- Media Items Injected Here -->
+                </div>
+            </section>
+
+            <!-- Files & Directories Tab -->
+            <section id="driveTab" class="content-tab">
+                <div class="tab-header">
+                    <h2><i class="fa-solid fa-hard-drive"></i> Files & Directories</h2>
+                    <div id="breadcrumbs" class="breadcrumbs">
+                        <span class="crumb active" onclick="navigateToFolder(null)">Home</span>
+                    </div>
+                </div>
+
+                <div id="driveGrid" class="drive-grid">
+                    <!-- Folders & Files Injected Here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Floating Action Button (Start Backup FAB - CloudGallery Style) -->
+    <label class="fab-upload" title="Start Backup / Upload Photo">
+        <i class="fa-solid fa-plus"></i>
+        <input type="file" id="fileUploadInput" onchange="handleFileUpload(event)" style="display:none;" multiple>
+    </label>
+
+    <!-- Floating Mobile Pill Navigation Bar (CloudGallery Style) -->
+    <nav class="mobile-nav">
+        <button class="mobile-nav-item active" onclick="switchTab('photosTab')">
+            <i class="fa-solid fa-images"></i>
+            <span>Photos</span>
+        </button>
+        <button class="mobile-nav-item" onclick="switchTab('driveTab')">
+            <i class="fa-solid fa-folder-closed"></i>
+            <span>Drive</span>
+        </button>
+        <button class="mobile-nav-item" onclick="openSettingsModal()">
+            <i class="fa-solid fa-gear"></i>
+            <span>Settings</span>
+        </button>
+        <button class="mobile-nav-item" onclick="lockVault()">
+            <i class="fa-solid fa-lock"></i>
+            <span>Lock</span>
+        </button>
+    </nav>
+
+    <!-- Upload Toast Notification -->
+    <div id="uploadToast" class="upload-toast" style="display: none;">
+        <div class="toast-content">
+            <i class="fa-solid fa-spinner fa-spin toast-icon"></i>
+            <div class="toast-text">
+                <strong id="toastFileName">Uploading file...</strong>
+                <span id="toastSubtext">Encrypting with AES-256-GCM...</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

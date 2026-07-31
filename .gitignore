@@ -1,0 +1,15 @@
+# Storage & Databases
+vault.db
+storage/
+*.enc
+*.db
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# System & OS
+.DS_Store
+.idea/
+.vscode/
