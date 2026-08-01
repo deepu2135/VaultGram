@@ -353,7 +353,7 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
                         if (filename.isNullOrEmpty() || filename.startsWith("NanoHTTPD")) {
                             filename = session.parameters["file"]?.firstOrNull() ?: rawFile.name
                         }
-                        if (filename.startsWith("NanoHTTPD") || filename.isEmpty()) {
+                        if (filename?.startsWith("NanoHTTPD") == true || filename.isNullOrEmpty()) {
                             filename = "uploaded_media_${UUID.randomUUID().toString().take(6)}.bin"
                         }
 
@@ -365,7 +365,7 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
                         val sha256 = CryptoEngine.encryptFile(rawFile, encFile, masterKey!!)
                         var mimeType = "application/octet-stream"
 
-                        val lowerName = filename.lowercase()
+                        val lowerName = (filename ?: "").lowercase()
                         if (lowerName.endsWith(".mp4") || lowerName.endsWith(".mkv") || lowerName.endsWith(".avi") || lowerName.endsWith(".webm") || lowerName.endsWith(".bin") || lowerName.endsWith(".enc")) {
                             mimeType = "video/mp4"
                         } else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png") || lowerName.endsWith(".webp") || lowerName.endsWith(".gif")) {
