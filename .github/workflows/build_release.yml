@@ -32,6 +32,15 @@ jobs:
       - name: Setup Gradle Environment
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Determine Version
+        id: version
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=v2.1.7-build.${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build Android APK
         run: |
           cd android
@@ -51,16 +60,17 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.1.6
-          name: VaultGram Release v2.1.6
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: VaultGram Release ${{ steps.version.outputs.tag }}
           body: |
-            ## 🚀 VaultGram Release v2.1.6
+            ## 🚀 VaultGram Release ${{ steps.version.outputs.tag }}
             
             ### 📱 Download Installable APK:
             - **VaultGram.apk**: Standalone Android App signed with official persistent release key.
-            - Fixed 0-byte NanoHTTPD temp filename bug (`NanoHTTPD-3117551068319619522`).
-            - Added dynamic DB `mime_type` lookup for streaming decrypted video & photo payloads.
-            - One-Time Passphrase Setup.
+            - Fixed Kotlin null safety build errors in VaultServer.kt.
+            - Fixed folder type mismatch (`directory` → `folder`).
+            - Added path traversal protection for static file serving.
+            - Fixed encrypted bytes leakage on decryption failure.
             - Embedded Zero-Knowledge AES-256 Cloud Engine.
           files: artifacts/VaultGram.apk
         env:

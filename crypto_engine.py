@@ -40,7 +40,7 @@ class CryptoEngine:
             )
             return kdf.derive(passphrase.encode('utf-8'))
         else:
-            return hashlib.pbkdf2_hmac('sha256', passphrase.encode('utf-8'), salt, 100_000, dklen=32)
+            return hashlib.pbkdf2_hmac('sha256', passphrase.encode('utf-8'), salt, 600_000, dklen=32)
 
     @staticmethod
     def generate_salt() -> bytes:

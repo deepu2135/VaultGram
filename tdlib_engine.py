@@ -76,7 +76,7 @@ class TDLibEngine:
 
     def send_request_async(self, request: Dict[str, Any]) -> asyncio.Future:
         """Asynchronously send TDLib JSON request and return Future for response."""
-        if "extra" not in request:
+        if "@extra" not in request:
             request["@extra"] = f"req_{time.time()}_{os.urandom(4).hex()}"
         extra = request["@extra"]
 

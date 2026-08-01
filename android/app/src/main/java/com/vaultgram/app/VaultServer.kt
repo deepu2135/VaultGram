@@ -23,6 +23,19 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
     private val salt = byteArrayOf(0x12, 0x34, 0x56, 0x78, 0x90.toByte(), 0xAB.toByte(), 0xCD.toByte(), 0xEF.toByte(), 0xfe.toByte(), 0xdc.toByte(), 0xba.toByte(), 0x98.toByte(), 0x76, 0x54, 0x32, 0x10)
     private var masterKey: SecretKey? = null
 
+    private fun tryAutoUnlock() {
+        if (masterKey == null) {
+            val savedPassphrase = getSetting("saved_passphrase")
+            if (!savedPassphrase.isNullOrEmpty()) {
+                try {
+                    masterKey = CryptoEngine.deriveKey(savedPassphrase, salt)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
     override fun serve(session: IHTTPSession): Response {
         val uri = session.uri
         val method = session.method
@@ -31,28 +44,14 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
             if (method == Method.GET) {
                 when {
                     uri == "/api/auth/status" -> {
-                        if (masterKey == null) {
-                            val savedPassphrase = getSetting("saved_passphrase")
-                            if (!savedPassphrase.isNullOrEmpty()) {
-                                try {
-                                    masterKey = CryptoEngine.deriveKey(savedPassphrase, salt)
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                }
-                            }
-                        }
+                        tryAutoUnlock()
                         val isConfigured = getSetting("passphrase_verifier") != null || getSetting("saved_passphrase") != null
                         val botConfigured = getSetting("bot_token") != null
                         val json = mapOf("configured" to isConfigured, "unlocked" to (masterKey != null), "bot_configured" to botConfigured)
                         return newJsonResponse(json)
                     }
                     uri == "/api/media" -> {
-                        if (masterKey == null) {
-                            val savedPassphrase = getSetting("saved_passphrase")
-                            if (!savedPassphrase.isNullOrEmpty()) {
-                                masterKey = CryptoEngine.deriveKey(savedPassphrase, salt)
-                            }
-                        }
+                        tryAutoUnlock()
                         if (masterKey == null) return new401Response()
                         val db = dbHelper.readableDatabase
                         val cursor = db.rawQuery("SELECT id, name, type, parent_id, size_bytes, mime_type, created_at FROM nodes WHERE type='file' ORDER BY created_at DESC", null)
@@ -222,7 +221,8 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
                             val decrypted = CryptoEngine.decryptBytes(encFile.readBytes(), masterKey!!)
                             newFixedLengthResponse(Response.Status.OK, dbMimeType, ByteArrayInputStream(decrypted), decrypted.size.toLong())
                         } catch (e: Exception) {
-                            newFixedLengthResponse(Response.Status.OK, dbMimeType, ByteArrayInputStream(encFile.readBytes()), encFile.length())
+                            e.printStackTrace()
+                            newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json", "{\"detail\":\"Decryption failed\"}")
                         }
                     }
                     else -> {
@@ -305,7 +305,7 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
                         val cv = ContentValues().apply {
                             put("id", folderId)
                             put("name", name)
-                            put("type", "directory")
+                            put("type", "folder")
                             put("parent_id", parentId)
                             put("created_at", System.currentTimeMillis().toString())
                         }
@@ -423,7 +423,6 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
     private fun saveSetting(key: String, value: String) {
         try {
             val db = dbHelper.writableDatabase
-            db.execSQL("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)")
             val cv = ContentValues().apply {
                 put("key", key)
                 put("value", value)
@@ -437,7 +436,6 @@ class VaultServer(private val context: Context, port: Int = 8000) : NanoHTTPD(po
     private fun getSetting(key: String): String? {
         return try {
             val db = dbHelper.readableDatabase
-            db.execSQL("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)")
             val cursor = db.rawQuery("SELECT value FROM settings WHERE key=?", arrayOf(key))
             var valResult: String? = null
             if (cursor.moveToFirst()) valResult = cursor.getString(0)

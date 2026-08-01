@@ -5,6 +5,7 @@ import uuid
 import base64
 import tempfile
 import asyncio
+from typing import Optional, Tuple
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 
@@ -24,7 +25,7 @@ tdlib.start()
 MASTER_KEY = None
 SALT = None
 
-def upload_to_telegram_channel(bot_token: str, chat_id: str, file_path: str, caption: str, original_filename: str = "document.bin") -> Optional[int]:
+def upload_to_telegram_channel(bot_token: str, chat_id: str, file_path: str, caption: str, original_filename: str = "document.bin") -> Tuple[Optional[int], Optional[str]]:
     """Upload encrypted document to Telegram Channel using Telegram API."""
     try:
         import urllib.request
@@ -250,12 +251,20 @@ class VaultGramHTTPHandler(BaseHTTPRequestHandler):
 
         else:
             # Serve Static Web UI Files
+            static_dir = "/root/vaultgram/static"
             static_file = path.lstrip("/") or "index.html"
-            file_path = os.path.join("/root/vaultgram/static", static_file)
+            file_path = os.path.realpath(os.path.join(static_dir, static_file))
+            # Prevent path traversal — resolved path must stay within static dir
+            if not file_path.startswith(os.path.realpath(static_dir) + os.sep) and file_path != os.path.realpath(static_dir):
+                self._set_headers(403)
+                self.wfile.write(b"403 Forbidden")
+                return
             if os.path.exists(file_path) and os.path.isfile(file_path):
                 content_type = "text/html"
                 if file_path.endswith(".js"): content_type = "application/javascript"
                 elif file_path.endswith(".css"): content_type = "text/css"
+                elif file_path.endswith(".png"): content_type = "image/png"
+                elif file_path.endswith(".jpg") or file_path.endswith(".jpeg"): content_type = "image/jpeg"
                 
                 self._set_headers(200, content_type=content_type)
                 with open(file_path, "rb") as f:

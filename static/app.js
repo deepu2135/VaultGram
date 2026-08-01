@@ -8,7 +8,6 @@ document.addEventListener('DOMContentLoaded', () => {
 function getServerUrl() {
     return localStorage.getItem('vaultgram_server_url') || (window.location.protocol.startsWith('http') ? '' : 'http://127.0.0.1:8000');
 }
-const SERVER_URL = getServerUrl();
 
 function setServerUrl(url) {
     if (url) {
@@ -149,6 +148,58 @@ function filterMedia(type) {
     renderMediaGrid();
 }
 
+function handleSearch(query) {
+    const q = (query || '').toLowerCase().trim();
+    if (!q) {
+        renderMediaGrid();
+        return;
+    }
+    const grid = document.getElementById('mediaGrid');
+    const emptyState = document.getElementById('emptyState');
+    grid.innerHTML = '';
+
+    const filtered = allMediaItems.filter(i => i.name && i.name.toLowerCase().includes(q));
+    document.getElementById('mediaCountBadge').textContent = `${filtered.length} Items`;
+
+    if (filtered.length === 0) {
+        emptyState.style.display = 'flex';
+        grid.style.display = 'none';
+        return;
+    }
+    emptyState.style.display = 'none';
+    grid.style.display = 'grid';
+
+    filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'media-card';
+        const isImage = item.mime_type && item.mime_type.startsWith('image');
+        const isVideo = item.mime_type && item.mime_type.startsWith('video');
+        const serverUrl = getServerUrl();
+
+        if (isImage) {
+            card.innerHTML = `
+                <img src="${serverUrl}/api/download/${item.id}" alt="${escapeHtml(item.name)}" loading="lazy" style="width:100%; height:100%; object-fit:cover; border-radius:12px;" />
+                <button class="delete-btn" onclick="deleteFileNode(event, '${item.id}')" title="Delete file"><i class="fa-solid fa-trash"></i></button>
+                <div class="media-name">${escapeHtml(item.name)}</div>
+            `;
+        } else if (isVideo) {
+            card.innerHTML = `
+                <video src="${serverUrl}/api/download/${item.id}" controls preload="metadata" style="width:100%; height:100%; object-fit:cover; border-radius:12px;"></video>
+                <button class="delete-btn" onclick="deleteFileNode(event, '${item.id}')" title="Delete file"><i class="fa-solid fa-trash"></i></button>
+                <div class="media-name">${escapeHtml(item.name)}</div>
+            `;
+        } else {
+            card.onclick = () => downloadFile(item.id, item.name);
+            card.innerHTML = `
+                <div class="media-placeholder" style="border-radius:12px;"><i class="fa-solid fa-file-shield"></i></div>
+                <button class="delete-btn" onclick="deleteFileNode(event, '${item.id}')" title="Delete file"><i class="fa-solid fa-trash"></i></button>
+                <div class="media-name">${escapeHtml(item.name)}</div>
+            `;
+        }
+        grid.appendChild(card);
+    });
+}
+
 async function syncTelegramChannel() {
     const toast = document.getElementById('uploadToast');
     const nameEl = document.getElementById('toastFileName');
@@ -158,7 +209,7 @@ async function syncTelegramChannel() {
     if (toast) toast.style.display = 'flex';
 
     try {
-        const res = await fetch(`${SERVER_URL}/api/sync`);
+        const res = await fetch(`${getServerUrl()}/api/sync`);
         const data = await res.json();
         if (res.ok) {
             alert(`Sync Complete! Imported ${data.synced || 0} new media files from your Telegram Channel.`);
@@ -175,7 +226,7 @@ async function syncTelegramChannel() {
 
 async function loadMediaVault() {
     try {
-        const res = await fetch(`${SERVER_URL}/api/media`);
+        const res = await fetch(`${getServerUrl()}/api/media`);
         const data = await res.json();
         allMediaItems = data.media || [];
         renderMediaGrid();
@@ -221,13 +272,13 @@ function renderMediaGrid() {
 
         if (isImage) {
             card.innerHTML = `
-                <img src="${SERVER_URL}/api/download/${item.id}" alt="${escapeHtml(item.name)}" loading="lazy" style="width:100%; height:100%; object-fit:cover; border-radius:12px;" />
+                <img src="${getServerUrl()}/api/download/${item.id}" alt="${escapeHtml(item.name)}" loading="lazy" style="width:100%; height:100%; object-fit:cover; border-radius:12px;" />
                 <button class="delete-btn" onclick="deleteFileNode(event, '${item.id}')" title="Delete file"><i class="fa-solid fa-trash"></i></button>
                 <div class="media-name">${escapeHtml(item.name)}</div>
             `;
         } else if (isVideo) {
             card.innerHTML = `
-                <video src="${SERVER_URL}/api/download/${item.id}" controls preload="metadata" style="width:100%; height:100%; object-fit:cover; border-radius:12px;"></video>
+                <video src="${getServerUrl()}/api/download/${item.id}" controls preload="metadata" style="width:100%; height:100%; object-fit:cover; border-radius:12px;"></video>
                 <button class="delete-btn" onclick="deleteFileNode(event, '${item.id}')" title="Delete file"><i class="fa-solid fa-trash"></i></button>
                 <div class="media-name">${escapeHtml(item.name)}</div>
             `;
@@ -238,7 +289,7 @@ function renderMediaGrid() {
                         <i class="fa-solid fa-music" style="font-size: 24px; color: var(--primary);"></i>
                     </div>
                     <div class="media-name" style="position:static; margin-bottom: 6px; text-align:center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(item.name)}</div>
-                    <audio src="${SERVER_URL}/api/download/${item.id}" controls style="width: 100%; height: 36px;"></audio>
+                    <audio src="${getServerUrl()}/api/download/${item.id}" controls style="width: 100%; height: 36px;"></audio>
                 </div>
                 <button class="delete-btn" onclick="deleteFileNode(event, '${item.id}')" title="Delete file"><i class="fa-solid fa-trash"></i></button>
             `;
@@ -258,7 +309,7 @@ function renderMediaGrid() {
 
 async function loadDriveNodes(parentId = null) {
     try {
-        let url = `${SERVER_URL}/api/nodes`;
+        let url = `${getServerUrl()}/api/nodes`;
         if (parentId) url += `?parent_id=${parentId}`;
 
         const res = await fetch(url);
@@ -304,7 +355,7 @@ async function handleFileUpload(event) {
     const toastFileName = document.getElementById('toastFileName');
     const toastSubtext = document.getElementById('toastSubtext');
 
-    toast.style.display = 'block';
+    toast.style.display = 'flex';
 
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -320,7 +371,7 @@ async function handleFileUpload(event) {
 
         try {
             toastSubtext.textContent = `Uploading encrypted binary to Telegram...`;
-            const res = await fetch(`${SERVER_URL}/api/upload`, {
+            const res = await fetch(`${getServerUrl()}/api/upload`, {
                 method: 'POST',
                 body: formData
             });
@@ -343,7 +394,7 @@ async function openCreateFolderModal() {
     if (!folderName) return;
 
     try {
-        const res = await fetch(`${SERVER_URL}/api/folders/create`, {
+        const res = await fetch(`${getServerUrl()}/api/folders/create`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -361,7 +412,7 @@ async function openCreateFolderModal() {
 
 function downloadFile(nodeId, filename) {
     const link = document.createElement('a');
-    link.href = `${SERVER_URL}/api/download/${nodeId}`;
+    link.href = `${getServerUrl()}/api/download/${nodeId}`;
     link.download = filename;
     document.body.appendChild(link);
     link.click();
@@ -375,7 +426,7 @@ function navigateToFolder(folderId, folderName) {
 
 async function lockVault() {
     try {
-        await fetch(`${SERVER_URL}/api/auth/lock`, { method: 'POST' });
+        await fetch(`${getServerUrl()}/api/auth/lock`, { method: 'POST' });
     } catch (e) {}
     location.reload();
 }
@@ -397,7 +448,7 @@ function escapeHtml(str) {
 
 async function openSettingsModal() {
     try {
-        const res = await fetch(`${SERVER_URL}/api/settings`);
+        const res = await fetch(`${getServerUrl()}/api/settings`);
         if (res.ok) {
             const data = await res.json();
             document.getElementById('settingsBotToken').value = data.bot_token || '';
@@ -421,7 +472,7 @@ async function handleSettingsSave(e) {
 
     statusMsg.textContent = 'Saving...';
     try {
-        const res = await fetch(`${SERVER_URL}/api/settings`, {
+        const res = await fetch(`${getServerUrl()}/api/settings`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ bot_token, channel_id })
@@ -445,7 +496,7 @@ async function handleSettingsSave(e) {
 async function wipeVaultData() {
     if (!confirm("Are you sure you want to WIPE all local files and reset your Vault database? This cannot be undone.")) return;
     try {
-        const res = await fetch(`${SERVER_URL}/api/nodes/wipe`, { method: 'POST' });
+        const res = await fetch(`${getServerUrl()}/api/nodes/wipe`, { method: 'POST' });
         if (res.ok) {
             alert('Vault database and local file cache successfully wiped clean!');
             loadCurrentTabData();
@@ -457,7 +508,7 @@ async function wipeVaultData() {
 
 async function cleanupPhantomFiles() {
     try {
-        const res = await fetch(`${SERVER_URL}/api/nodes/cleanup`, { method: 'POST' });
+        const res = await fetch(`${getServerUrl()}/api/nodes/cleanup`, { method: 'POST' });
         const data = await res.json();
         if (res.ok) {
             alert(`Cleaned up ${data.cleaned} broken test entries!`);
@@ -472,7 +523,7 @@ async function deleteFileNode(event, nodeId) {
     event.stopPropagation();
     if (!confirm('Are you sure you want to delete this file?')) return;
     try {
-        const res = await fetch(`${SERVER_URL}/api/nodes/delete`, {
+        const res = await fetch(`${getServerUrl()}/api/nodes/delete`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ node_id: nodeId })
